@@ -1,14 +1,15 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Select from 'react-select';
+import axios from 'axios';
 
 export default function Home() {
   const [apiInput, setApiInput] = useState('');
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
   const [selectedOptions, setSelectedOptions] = useState([]);
-  const [filteredResponse, setFilteredResponse] = useState([]);
+  const [filteredResponse, setFilteredResponse] = useState({});
 
   const options = [
     { value: 'Alphabets', label: 'Alphabets' },
@@ -29,20 +30,13 @@ export default function Home() {
     if (validateJson(apiInput)) {
       setError('');
       try {
-        // Simulated response instead of real API call
-        const response = {
-          data: {
-            "is_success": true,
-            "user_id": "john_doe_17091999",
-            "email": "john@xyz.com",
-            "roll_number": "20BCE1234", // Replace with your actual roll number
-            "numbers": ["1", "334", "4"],
-            "alphabets": ["A", "C", "Z", "c", "i"],
-            "highest_lowercase_alphabet": ["i"]
-          }
-        };
-        setData(response.data);
+        // Send POST request to backend server
+        const response = await axios.post('http://35.154.159.251:3000/bfhl', JSON.parse(apiInput));
+        // Extract data from response
+        const responseData = response.data.data;
+        setData(responseData);
       } catch (e) {
+        console.error(e);
         setError('API Error');
       }
     } else {
@@ -53,26 +47,35 @@ export default function Home() {
   const handleFilter = () => {
     if (!data) return;
 
-    let filtered = [];
+    let groupedResponse = {};
+
+    // Initialize grouped response based on selected options
+    selectedOptions.forEach(option => {
+      groupedResponse[option.label] = [];
+    });
+
     if (selectedOptions.some(option => option.value === 'Alphabets')) {
-      filtered = [...filtered, ...data.alphabets];
+      groupedResponse['Alphabets'] = data.alphabets;
     }
     if (selectedOptions.some(option => option.value === 'Numbers')) {
-      filtered = [...filtered, ...data.numbers];
+      groupedResponse['Numbers'] = data.numbers;
     }
     if (selectedOptions.some(option => option.value === 'Highest lowercase alphabet')) {
-      const lowercaseLetters = data.highest_lowercase_alphabet;
-      if (lowercaseLetters.length > 0) {
-        filtered.push(lowercaseLetters[0]);
-      }
+      groupedResponse['Highest lowercase alphabet'] = data.highest_lowercase_alphabet;
     }
-    setFilteredResponse(filtered);
+
+    setFilteredResponse(groupedResponse);
   };
+
+  // Use useEffect to call handleFilter when selectedOptions or data changes
+  useEffect(() => {
+    handleFilter();
+  }, [selectedOptions, data]);
 
   return (
     <>
       <Head>
-        <title>20BCE1234</title> {/* Replace with your roll number */}
+        <title>21BIT0224</title> {/* Replace with your roll number */}
       </Head>
       <div style={styles.container}>
         <label htmlFor="apiInput" style={styles.label}>API Input</label>
@@ -100,10 +103,16 @@ export default function Home() {
               styles={customSelectStyles}
             />
             <div style={{ marginTop: '10px' }}>
-              {filteredResponse.length > 0 && (
+              {Object.keys(filteredResponse).length > 0 ? (
                 <div style={styles.response}>
-                  <p>Filtered Response: {filteredResponse.join(', ')}</p>
+                  {Object.entries(filteredResponse).map(([key, values]) => (
+                    <div key={key}>
+                      <p><strong>{key}:</strong> {values.join(', ')}</p>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <p style={styles.response}>No results to display</p>
               )}
             </div>
           </>
@@ -118,7 +127,7 @@ const styles = {
     maxWidth: '400px',
     margin: '50px auto',
     padding: '10px',
-    // backgroundColor: '#fff',
+    backgroundColor: '#fff', // Changed to white background
     borderRadius: '5px',
     border: '1px solid #ddd',
     boxShadow: '0px 0px 5px rgba(0, 0, 0, 0.1)',
@@ -155,7 +164,7 @@ const styles = {
     marginTop: '10px',
     padding: '10px',
     borderRadius: '5px',
-    backgroundColor: '#f7f7f7',
+    backgroundColor: '#fff', // Changed to white background
     border: '1px solid #ddd',
   }
 };
